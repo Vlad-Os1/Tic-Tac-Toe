@@ -86,7 +86,7 @@ function Cell() {
 
 function Game(){
   let currentPlayer = "X";
-  let gameBoard = GameBoard();
+  const gameBoard = GameBoard();
 
   const printBoard = () => {
     const board = gameBoard.getBoard();
@@ -95,41 +95,123 @@ function Game(){
     board.forEach(row => {
       console.log(row.map(cell => cell.getValue() || '-').join('|'));
     });
-
-    console.log('\n'); // just logs an empty row
   };
 
   const playRound = (row, col) => {
+    // Check for admissibility of coordinates
+    if (row < 0 || row >= 3 || col < 0 || col >= 3) {
+      console.log("Invalid Move: Out of bounds");
+      return false;
+    }
+
+    // Check if the cell is already occupied
+    if (gameBoard.getBoard()[row][col].getValue() !== null) {
+      console.log("Invalid Move: Cell already occupied");
+      return false;
+    }
+
     if(gameBoard.makeMove(row, col, currentPlayer)){
       printBoard();
+      updateUI();
 
       const winner = gameBoard.checkWinner();
+
       if(winner){
-        console.log(`${winner} is a winner`)
-        gameBoard.cleanBoard()
-        return true
-      } else if (gameBoard.boardIsFull()){
-        console.log("It`s a draw")
-        gameBoard.cleanBoard()
-        return true
-      }
+          console.log(`${winner} is a winner`);
+          winnerMsg.textContent = `${winner} is a winner`;
+          modal.classList.add("active");
+          overlay.classList.add("active");
+          gameBoard.cleanBoard();
+          return true;
+        } else if (gameBoard.boardIsFull()){
+          console.log("It`s a draw");
+          winnerMsg.textContent = `Its a Draw`;
+          modal.classList.add("active");
+          overlay.classList.add("active");
+          gameBoard.cleanBoard();
+          return true;
+        }
 
-      currentPlayer = currentPlayer === "X" ? "O" : "X"
+      currentPlayer = currentPlayer === "X" ? "O" : "X";
+      return false;
+    } 
+  };
 
-    } else {
-      console.log("Invalid Move")
+  const updateUI = () => {
+    const boardCell = document.querySelectorAll("[data-cell]");
+    const board = gameBoard.getBoard();
+
+    if (boardCell.length !== board.length * board[0].length) {
+      console.error("Error: The number of DOM cells does not match the game board.");
+      return;
     }
-    return false //just shows that the game continues
-  } 
 
+    boardCell.forEach((cell, index) => {
+      let row = Math.floor(index / 3);
+      let col = index % 3;
 
+      const cellValue = gameBoard.getBoard()[row][col].getValue();
+      if (cellValue === "X") {
+        cell.classList.add("x");
+        cell.classList.remove("circle");
+      } else if (cellValue === "O") {
+        cell.classList.add("circle");
+        cell.classList.remove("x");
+      } else {
+        cell.classList.remove("x", "circle");
+      }
+    });
+  };
+
+  const restartGame = () => {
+    gameBoard.cleanBoard();
+    currentPlayer = "X";
+    updateUI();
+  };
+
+  
   return{
     printBoard,
     playRound,
+    updateUI,
+    restartGame,
   }
-
 }
 
+// Modal
+const closeModalButton = document.querySelector("#modalBtn")
+const overlay = document.getElementById('overlay')
+const modal = document.querySelector('.modal')
+const winnerMsg = document.querySelector("#winnerMsg")
 
+closeModalButton.addEventListener('click', () => {
+  closeModal(modal)
+})
+
+function closeModal(modal) {
+  if (modal == null) return;
+  modal.classList.remove('active');
+  overlay.classList.remove('active');
+  game.restartGame();
+}
+
+const initializeBoard = () => {
+  const boardCell = document.querySelectorAll("[data-cell]");
+  
+  boardCell.forEach((cell, index) => {
+    let row = Math.floor(index / 3);
+    let col = index % 3;
+
+    cell.addEventListener("click", function () {
+      const currentCells = document.querySelectorAll("[data-cell]");
+      if (currentCells.length === 9) {
+        game.playRound(row, col);
+      } else {
+        console.error("Cell count has changed, reinitialize required.");
+      }
+    });
+  });
+};
 
 let game = Game();
+initializeBoard();
