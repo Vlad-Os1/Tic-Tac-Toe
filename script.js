@@ -173,7 +173,6 @@ function Game(){
   return{
     printBoard,
     playRound,
-    updateUI,
     restartGame,
   }
 }
